@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Document Tree Visualizer</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <main class="container">
+        <header class="header">
+            <div>
+                <h1>LLM Document Tree Visualizer</h1>
+                <p>Extract and visualize document hierarchies using AI</p>
+            </div>
+            <button class="header-toggle" type="button" id="toggleConfigBtn">Hide Config</button>
+        </header>
+
+        <section id="config" class="config-panel">
+            <div class="section-heading">
+                <h2>Config</h2>
+                <div id="connectionStatus" class="connection-status">Not connected</div>
+            </div>
+            <div id="configAlert"></div>
+
+            <div class="config-grid">
+                <div class="form-group">
+                    <label for="provider">LLM Provider</label>
+                    <select id="provider">
+                        <option value="openai">OpenAI</option>
+                        <option value="anthropic">Anthropic</option>
+                        <option value="google">Google Gemini</option>
+                        <option value="custom">Custom Endpoint</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="modelName">Model Name</label>
+                    <input type="text" id="modelName" placeholder="gpt-4o">
+                </div>
+
+                <div class="form-group">
+                    <label for="temperature">Temperature</label>
+                    <input type="number" id="temperature" min="0" max="2" step="0.1" value="0.2">
+                </div>
+
+                <div class="form-group api-key-group">
+                    <label for="apiKey">API Key</label>
+                    <div class="input-with-button">
+                        <input type="password" id="apiKey" placeholder="Your API key here" autocomplete="off">
+                        <button class="icon-btn" type="button" id="toggleApiKeyBtn" aria-label="Show API key">Show</button>
+                    </div>
+                </div>
+
+                <div class="form-group custom-endpoint" id="customEndpointGroup">
+                    <label for="apiEndpoint">Custom API Endpoint</label>
+                    <input type="text" id="apiEndpoint" placeholder="https://api.example.com/v1/chat/completions">
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn" type="button" id="testConnectionBtn">Test Connection</button>
+            </div>
+        </section>
+
+        <nav class="tabs" aria-label="Workflow steps">
+            <button class="tab-btn active" type="button" data-tab="upload">1. Upload</button>
+            <button class="tab-btn" type="button" data-tab="results">2. Results</button>
+        </nav>
+
+        <section id="upload" class="content active">
+            <div class="section-heading">
+                <h2>Upload Document</h2>
+                <button class="btn" type="button" id="processBtn" disabled>Process Document</button>
+            </div>
+            <div id="uploadAlert"></div>
+
+            <div class="form-group">
+                <label for="fileInput">Select File (PDF, DOCX, TXT, MD)</label>
+                <div class="upload-area" id="uploadArea" role="button" tabindex="0">
+                    <p>Drag and drop your file here or click to browse</p>
+                    <p class="hint">Text and Markdown are extracted directly. PDF and DOCX require plain text support in the browser.</p>
+                </div>
+                <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.md">
+            </div>
+
+            <ul class="file-list" id="fileList"></ul>
+        </section>
+
+        <section id="results" class="content">
+            <div class="section-heading">
+                <h2>Results</h2>
+                <div class="results-actions">
+                    <label for="resultView">View</label>
+                    <select id="resultView">
+                        <option value="json">JSON</option>
+                        <option value="mermaid">Mermaid</option>
+                    </select>
+                    <button class="btn btn-secondary" type="button" id="downloadJsonBtn">Download JSON</button>
+                    <button class="btn btn-secondary" type="button" id="downloadMermaidBtn">Download Mermaid</button>
+                    <button class="btn" type="button" id="downloadPngBtn">Download PNG</button>
+                </div>
+            </div>
+            <div id="resultsAlert"></div>
+
+            <div id="status" class="status">
+                <div><span class="spinner"></span> <span id="statusText">Processing...</span></div>
+            </div>
+
+            <div id="resultsGrid" class="results-grid json-mode">
+                <section class="result-panel" id="jsonPanel">
+                    <div class="panel-header">
+                        <h3>JSON</h3>
+                        <div class="button-group compact">
+                            <button class="btn btn-secondary" type="button" id="editJsonBtn">Edit</button>
+                            <button class="btn btn-secondary" type="button" id="restoreJsonBtn">Restore Original</button>
+                        </div>
+                    </div>
+                    <textarea id="jsonOutput" class="code-box" spellcheck="false" readonly></textarea>
+                </section>
+
+                <section class="result-panel" id="mermaidCodePanel">
+                    <div class="panel-header">
+                        <h3>Mermaid Code</h3>
+                        <div class="button-group compact">
+                            <button class="btn btn-secondary" type="button" id="editMermaidBtn">Edit</button>
+                            <button class="btn btn-secondary" type="button" id="restoreMermaidBtn">Restore Original</button>
+                        </div>
+                    </div>
+                    <textarea id="mermaidOutput" class="code-box" spellcheck="false" readonly></textarea>
+                </section>
+
+                <section class="result-panel" id="mermaidVisualPanel">
+                    <div class="panel-header">
+                        <h3>Diagram</h3>
+                        <div class="button-group compact">
+                            <button class="btn btn-secondary" type="button" id="toggleMermaidViewBtn">Mermaid Render</button>
+                            <button class="btn btn-secondary" type="button" id="visualEditorBtn">Visual Editor</button>
+                        </div>
+                    </div>
+                    <div id="mermaidPreview" class="mermaid-preview"></div>
+                    <div id="visualEditor" class="visual-editor">
+                        <div class="visual-toolbar">
+                            <input type="text" id="nodeTitleInput" placeholder="Selected node title">
+                            <button class="btn btn-secondary" type="button" id="renameNodeBtn">Rename</button>
+                            <button class="btn btn-secondary" type="button" id="addChildBtn">Add Child</button>
+                            <button class="btn btn-secondary" type="button" id="addSiblingBtn">Add Sibling</button>
+                            <button class="btn btn-secondary" type="button" id="connectNodeBtn">Connect</button>
+                            <button class="btn btn-secondary" type="button" id="deleteConnectionBtn">Delete Connection</button>
+                            <button class="btn btn-secondary danger" type="button" id="deleteNodeBtn">Delete</button>
+                        </div>
+                        <svg id="visualMap" class="visual-map" role="img" aria-label="Editable mind map"></svg>
+                    </div>
+                </section>
+            </div>
+        </section>
+    </main>
+</body>
+</html>
